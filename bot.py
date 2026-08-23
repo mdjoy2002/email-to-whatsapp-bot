@@ -30,17 +30,61 @@ def check_email_and_send():
           subject = msg["Subject"]
           sender = msg["From"]
 
-          message = f"📢 New Email Arrived!\nFrom: {sender}\nSubject: {subject}"
+          # '📢 New Email Arrived!' লেখাটি বাদ দেওয়া হয়েছে
+          text_message = f"From: {sender}\nSubject: {subject}"
+          url_text = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
+          requests.post(
+              url_text, json={"chatId": GROUP_CHAT_ID, "message": text_message}
+          )
 
-          # সরাসরি HTTP রিকোয়েস্ট (কোনো লাইব্রেরির ঝামেলা নেই)
-          url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
-          payload = {"chatId": GROUP_CHAT_ID, "message": message}
-          res = requests.post(url, json=payload)
+          # মেইলের ভেতর এটাচমেন্ট চেক করা (PDF, Word, Excel)
+          for part in msg.walk():
+            if part.get_content_maintype() == "multipart":
+              continue
+            if part.get("Content-Disposition") is None:
+              continue
 
-          if res.status_code == 200:
-            print("WhatsApp message sent successfully!")
-          else:
-            print(f"Failed to send. Status: {res.status_code}")
+            filename = part.get_filename()
+            if filename:
+              filename_lower = filename.lower()
+              allowed_extensions = (
+                  ".pdf",
+                  ".doc",
+                  ".docx",
+                  ".xls",
+                  ".xlsx",
+              )
+
+              if filename_lower.endswith(allowed_extensions):
+                filepath = os.path.join(".", filename)
+                with open(filepath, "wb") as f:
+                  f.write(part.get_payload(decode=True))
+                print(f"Downloaded Document: {filename}")
+
+                # Green API-এর মাধ্যমে হোয়াটসঅ্যাপে ফাইল আপলোড করে পাঠানো
+                url_file = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendFileByUpload/{API_TOKEN_INSTANCE}"
+
+                with open(filepath, "rb") as f_file:
+                  files = {"file": (filename, f_file)}
+                  data_payload = {
+                      "chatId": GROUP_CHAT_ID,
+                      "caption": f"Attached File: {filename}",
+                  }
+                  res_file = requests.post(
+                      url_file, data=data_payload, files=files
+                  )
+
+                  if res_file.status_code == 200:
+                    print("Document sent to WhatsApp successfully!")
+                  else:
+                    print(
+                        f"Failed to send document. Status:"
+                        f" {res_file.status_code}"
+                    )
+
+                # কাজ শেষে লোকাল ফোল্ডার থেকে ফাইল ডিলিট করা
+                if os.path.exists(filepath):
+                  os.remove(filepath)
 
     mail.logout()
   except Exception as e:
