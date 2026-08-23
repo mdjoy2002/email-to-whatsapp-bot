@@ -1,23 +1,33 @@
 import email
 import imaplib
-import os
 import threading
 import time
 from flask import Flask
-from whatsapp_api_client_python import API
+import requests
 
 app = Flask(__name__)
 
 # কনফিগারেশন
 IMAP_SERVER = "imap.gmail.com"
 EMAIL_ACCOUNT = "knuhighschool1994@gmail.com"
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+EMAIL_PASSWORD = "yxzicyuqakfryenx"
 
-ID_INSTANCE = os.environ.get("ID_INSTANCE")
-API_TOKEN_INSTANCE = os.environ.get("API_TOKEN_INSTANCE")
+ID_INSTANCE = "710762264"
+API_TOKEN_INSTANCE = "cb0e59e38acb4385b4fc75f121c7f3bf1425d70fb2314ae08a"
 GROUP_CHAT_ID = "120363356722963349@g.us"
 
-greenAPI = API.GreenAPI(ID_INSTANCE, API_TOKEN_INSTANCE)
+
+def send_whatsapp_message(message_text):
+  url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
+  payload = {"chatId": GROUP_CHAT_ID, "message": message_text}
+  try:
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+      print("WhatsApp message sent successfully via HTTP!")
+    else:
+      print(f"Failed to send WhatsApp message. Status: {response.status_code}")
+  except Exception as e:
+    print(f"API Request Error: {e}")
 
 
 def check_email_loop():
@@ -37,19 +47,17 @@ def check_email_loop():
             sender = msg["From"]
 
             message = f"📢 New Email Arrived!\nFrom: {sender}\nSubject: {subject}"
-            response_api = greenAPI.sending.sendMessage(GROUP_CHAT_ID, message)
-            if response_api.code == 200:
-              print("WhatsApp message sent successfully via Flask app!")
+            send_whatsapp_message(message)
 
       mail.logout()
     except Exception as e:
       print(f"Error in background loop: {e}")
 
-    # প্রতি ১ মিনিট (৬০ সেকেন্ড) পর পর চেক করবে
+    # প্রতি ১ মিনিট পর পর চেক করবে
     time.sleep(60)
 
 
-# ব্যাকগ্রাউন্ডে লুপটি রান করানোর জন্য থ্রেড শুরু করা
+# ব্যাকগ্রাউন্ডে লুপটি চালু করা
 threading.Thread(target=check_email_loop, daemon=True).start()
 
 
