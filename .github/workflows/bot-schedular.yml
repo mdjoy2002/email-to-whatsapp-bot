@@ -1,0 +1,30 @@
+name: Email to WhatsApp Bot
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # প্রতি ১০ মিনিট পর পর রান হবে
+  workflow_dispatch: # ম্যানুয়ালি রান করার অপশন
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install whatsapp-api-client-python requests
+
+      - name: Run Bot Script
+        env:
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          ID_INSTANCE: ${{ secrets.ID_INSTANCE }}
+          API_TOKEN_INSTANCE: ${{ secrets.API_TOKEN_INSTANCE }}
+        run: |
+          python bot.py
