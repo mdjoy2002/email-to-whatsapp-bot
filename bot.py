@@ -1,17 +1,18 @@
 import email
 import imaplib
 import os
-from whatsapp_api_client_python import API
+import requests
 
 IMAP_SERVER = "imap.gmail.com"
 EMAIL_ACCOUNT = "knuhighschool1994@gmail.com"
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD") or "yxzicyuqakfryenx"
 
-ID_INSTANCE = os.environ.get("ID_INSTANCE")
-API_TOKEN_INSTANCE = os.environ.get("API_TOKEN_INSTANCE")
+ID_INSTANCE = os.environ.get("ID_INSTANCE") or "7107622664"
+API_TOKEN_INSTANCE = (
+    os.environ.get("API_TOKEN_INSTANCE")
+    or "cb0e59e38acb4385b4fc75f121c7f3bf1425d70fb2314ae08a"
+)
 GROUP_CHAT_ID = "120363356722963349@g.us"
-
-greenAPI = API.GreenAPI(ID_INSTANCE, API_TOKEN_INSTANCE)
 
 
 def check_email_and_send():
@@ -30,9 +31,16 @@ def check_email_and_send():
           sender = msg["From"]
 
           message = f"📢 New Email Arrived!\nFrom: {sender}\nSubject: {subject}"
-          response = greenAPI.sending.sendMessage(GROUP_CHAT_ID, message)
-          if response.code == 200:
-            print("WhatsApp message sent to group successfully!")
+
+          # সরাসরি HTTP রিকোয়েস্ট (কোনো লাইব্রেরির ঝামেলা নেই)
+          url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
+          payload = {"chatId": GROUP_CHAT_ID, "message": message}
+          res = requests.post(url, json=payload)
+
+          if res.status_code == 200:
+            print("WhatsApp message sent successfully!")
+          else:
+            print(f"Failed to send. Status: {res.status_code}")
 
     mail.logout()
   except Exception as e:
